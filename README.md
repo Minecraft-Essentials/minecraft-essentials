@@ -32,7 +32,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-minecraft-essentials = "0.2.9"
+minecraft-essentials = "0.2.12"
 ```
 
 ## Usage
