@@ -77,3 +77,19 @@ pub async fn get_project(
 
     Ok(modrinth_project)
 }
+
+
+pub async fn get_multiple_projects(user_agent: &str, ) -> Result<(), ModrinthErrors> {
+    let mut params: Vec<String> = vec![];
+    let url = format!("{}/search", MODRINTH_API);
+    let client = Client::new();
+
+    // Maxium Limit is 100.
+;
+
+
+
+
+
+    Ok(())
+}
