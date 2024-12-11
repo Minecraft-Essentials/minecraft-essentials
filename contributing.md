@@ -3,8 +3,10 @@
 
 ## Before you start:
 - You Read the [conventional commit specification](https://www.conventionalcommits.org/en/v1.0.0/),
-- You have basic knowledge of how [rust / A library works](https://doc.rust-lang.org/cargo/index.html) &
-- And At least done a [contributed at least once](https://github.com/firstcontributions/first-contributions).
+- You have intermediate knowledge of how [rust / A library works](https://doc.rust-lang.org/cargo/index.html) &
+- Knowledge of Minecraft Authentification and Launching (if working on authentification or launching)
+- Knowledge on Curseforge or Modrinth (if working on modplatform api)
+
 
 
 ## Prerequisites: 
@@ -20,11 +22,11 @@
 
 ## Getting Started
 
-First you want to get started by creating a `.env` and copy and paste the `.env.example` to the `.env`.
+First you want to get started by creating a `.env` and copy and paste the `.env.example` to the `.env` or settting the following varaibles below.
 
 
-The Client_ID is the client id from your [Azure/EntraId App](https://entra.microsoft.com/)
-The Client_Secret is the client Secret from your [Azure/EntraId App](https://entra.microsoft.com/)
+The `Client_ID` is the client id from your [Azure/EntraId App](https://entra.microsoft.com/)
+The `Client_Secret` is the client Secret from your [Azure/EntraId App](https://entra.microsoft.com/)
 
 Note in your [Azure/EntraId App](https://entra.microsoft.com/) you need to set the redirect url to `http://localhost:PORT` The Port is `PORT`. Useally you want to set it to the port that you specifyed but if you haven't set it yet the deafult port is 8000 or `http://localhost:8000`. 
 
@@ -32,11 +34,11 @@ Note in your [Azure/EntraId App](https://entra.microsoft.com/) you need to set t
 
 ### Testing/Benchmarks/Running 
 
-In `lib.rs` there is built in tests for testing the library using the `cargo test`. 
+Thoughout this repo there is built in tests for testing the library using the `cargo test`. 
 
-If you want to just try out things you can play around with stuff in `main.rs` then to run it just do a simple `cargo run` to run the main.rs for playaround stuff and testing.
+If you want to just try out things you can just do a simple `cargo run` to run the cli for playaround stuff and testing.
 
-To benchmark you must write a test in `lib.rs` based on [cargo-bench](https://doc.rust-lang.org/cargo/commands/cargo-bench.html) and it will tell you in seconds how long your change takes.
+To benchmark you must write a test in thought the work you are doing based on [cargo-bench](https://doc.rust-lang.org/cargo/commands/cargo-bench.html) and it will tell you in seconds how long your change takes.
 
 
 
