@@ -1,3 +1,13 @@
-
 [workspace]
-members = ["crates/core" "crates/cli"]
+members = ["crates/core", "crates/minecraft-essentails"]
+default-members = ["crates/minecraft-essentails", "crates/node"]
+
+[workspace.package]
+version = "0.2.11"
+keywords = ["Minecraft", "MinecraftClient"]
+authors = ["Eveeifyeve <eveeg1971@gmail.com>"]
+description = "A Library that gives all Minecraft client launchers essentials."
+homepage = "https://minecraft-essentials.github.io"
+repository = "https://github.com/minecraft-essentials/minecraft-essentials"
+license-file = "LICENSE"
+edition = "2021"

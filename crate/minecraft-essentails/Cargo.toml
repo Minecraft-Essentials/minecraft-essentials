@@ -1,0 +1,47 @@
+[package]
+name = "minecraft-essentials"
+documentation = "https://docs.rs/minecraft-essentials";
+version.workspace = true;
+keywords.workspace = true
+authors.workspace = true
+description.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license-file.workspace = true
+edition.workspace = true
+
+[build]
+rustdocflags = ["--theme=ayu"]
+
+[[bin]]
+name = "minecraft-essentials"
+path = "src/main.rs"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-cli"
+bin-dir = "{ name }-{ target }-v{ version }/{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
+pkg-fmt = "zip"
+
+
+[dependencies]
+core = { path = "../core", default-features = false}
+clap = { version = "4.5.4", features = ["derive"] }
+
+[dev-dependencies]
+dotenv = "0.15.0"
+
+[features]
+default = ["auth", "cli", "launch", "modrinth", "curseforge"]
+auth = ["core/auth"]
+launch = ["core/launch"]
+refresh = ["core/refresh"]
+# Mod Platforms
+modrinth = ["core/modrinth"]
+curseforge = ["core/curseforge"]
+cli = ["dep:clap", "auth"]
