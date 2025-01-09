@@ -1,33 +1,14 @@
-workspace = { members = ["crate/cli"] }
 [package]
 name = "minecraft-essentials"
 version = "0.2.12"
 keywords = ["Minecraft", "MinecraftModpack", "Essentials"]
 authors = ["Eveeifyeve <eveeg1971@gmail.com>"]
-description = "A Library that gives all Minecraft Modpack developers essentials."
+description = "A Library that gives all Minecraft Modpack developers essentials.":
 homepage = "https://minecraft-essentials.github.io"
 repository = "https://github.com/minecraft-essentials/minecraft-essentials"
 documentation = "https://docs.rs/minecraft-essentials"
 license-file = "LICENSE"
 edition = "2021"
-
-[build]
-rustdocflags = ["--theme=ayu"]
-
-[[bin]]
-name = "minecraft-essentials"
-path = "src/main.rs"
-
-[package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/{ name }-cli"
-bin-dir = "{ name }-{ target }-v{ version }/{ bin }{ binary-ext }"
-pkg-fmt = "tgz"
-
-[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
-pkg-fmt = "zip"
-
-[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
-pkg-fmt = "zip"
 
 [dependencies]
 tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros", "sync"] }
@@ -45,9 +26,6 @@ displaydoc = "0.2.4"
 thiserror = "1.0.59"
 bytes = "1.6.0"
 sha-1 = "0.10.1"
-
-[dev-dependencies]
-dotenv = { version = "0.15.0" }
 
 [features]
 default = ["auth", "cli", "launch", "modrinth", "curseforge"]
