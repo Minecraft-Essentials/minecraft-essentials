@@ -3,6 +3,10 @@
 		nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 		flake-parts.url = "github:hercules-ci/flake-parts";
 		agenix-shell.url = "github:aciceri/agenix-shell";
+		fenix = {
+			url = "github:nix-community/fenix";
+			inputs.nixpkgs.follows = "nixpkgs";
+		};
 	};
 
 	outputs =
@@ -18,6 +22,7 @@
 
 		imports = [
 # agenix-shell.flakeModules.default
+
 		];
 
 # agenix-shell = {
@@ -30,34 +35,36 @@
 		{
 			pkgs,
 			config,
+			system,
 			lib,
 			...
 		}:
 		let
-			inherit (pkgs.darwin.apple_sdk.frameworks) SystemConfiguration;
-		toolchain = pkgs.rustPlatform;
+			toolchain = pkgs.rustPlatform;
 		in
 		{
-			devShells.default = pkgs.mkShell {
-				packages = with pkgs; [
-					openssl
-					(with toolchain;
-					[
-					 rustc 
-					 cargo
-					])
-					clippy
-					rustfmt
-					rust-analyzer-unwrapped
-					libiconv
-					pkg-config
-					cargo-edit # Util for updating packages
-				] ++ lib.optionals stdenv.isDarwin [
-				darwin.libobjc  
-				SystemConfiguration
+			_module.args.pkgs = import nixpkgs {
+				inherit system;
+				overlays = [
+					(inputs.fenix.overlays.default)
 				];
-				RUST_SRC_PATH = "${toolchain.rustLibSrc}";
 			};
-		};
+
+      devShells.default = with pkgs; let 
+        toolchain = pkgs.fenix.stable.withComponents [
+          "rustc"
+          "cargo"
+          "clippy"
+        ];
+        in mkShell
+        {
+          packages = with pkgs; [
+            openssl
+						hyperfine
+            rust-analyzer
+            toolchain
+          ];
+        };
+      };
 	};
 }
