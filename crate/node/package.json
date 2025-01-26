@@ -23,6 +23,7 @@
 	"ava": {
 		"timeout": "3m"
 	},
+	"packageManager": "bun@1.0.25",
 	"engines": {
 		"node": ">= 10"
 	},
