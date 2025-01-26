@@ -31,7 +31,7 @@ pkg-fmt = "zip"
 
 [dependencies]
 core = { path = "../core", default-features = false}
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.27", features = ["derive"] }
 
 [dev-dependencies]
 dotenv = "0.15.0"
