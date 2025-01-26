@@ -4,7 +4,7 @@ default-members = ["crates/minecraft-essentails", "crates/node"]
 
 [workspace.package]
 version = "0.2.11"
-keywords = ["Minecraft", "MinecraftClient"]
+keywords = ["Minecraft", "MinecraftClient", "Essentials"]
 authors = ["Eveeifyeve <eveeg1971@gmail.com>"]
 description = "A Library that gives all Minecraft client launchers essentials."
 homepage = "https://minecraft-essentials.github.io"
