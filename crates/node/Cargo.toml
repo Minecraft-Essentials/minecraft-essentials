@@ -1,7 +1,8 @@
 [package]
 edition = "2021"
-name = "minecraft-essentials"
-version = "0.0.1"
+name = "node"
+version.workspace = true
+publish = false
 
 [lib]
 crate-type = ["cdylib"]
@@ -9,7 +10,7 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = { version = "2.16.13", default-features = false, features = ["napi4", "tokio"] }
 napi-derive = "2.16.13"
-minecraft-essentials = { path = "../core" }
+core = { path = "../core" }
 
 [build-dependencies]
 napi-build = "2.1.4"
