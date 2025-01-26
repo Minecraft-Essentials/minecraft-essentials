@@ -62,6 +62,7 @@
             openssl
 						hyperfine
             rust-analyzer
+						bun # needed for node
             toolchain
           ];
         };
