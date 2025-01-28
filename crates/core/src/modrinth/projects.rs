@@ -1,8 +1,5 @@
-use std::fmt::format;
-
-use reqwest::Client;
-
-use crate::errors::ModPlatformErrors;
+use crate::HTTP::Client;
+use crate::errors::ModPlatformsErrors;
 
 use super::MODRINTH_API;
 use serde::{Deserialize, Serialize};
@@ -54,22 +51,22 @@ pub struct DonationUrl {
 }
 
 pub async fn get_project(
+    client: Client,
     project: &str,
     user_agent: &str,
-) -> Result<ModrinthProject, ModPlatformErrors> {
+) -> Result<ModrinthProject, ModPlatformsErrors> {
     let url = format!("{}/project/{}", MODRINTH_API, project);
-    let client = Client::new();
     let res = client
         .get(url)
         .header("User-Agent", user_agent)
         .send()
         .await
         .map_err(|err| {
-            ModplatformErrors::RequestError("Failed to request to modrinth: ", err.to_string())
+            ModPlatformsErrors::RequestError(format!("Failed to request to modrinth: {}", err.to_string())) 
         })?;
 
     let modrinth_project: ModrinthProject = res.json().await.map_err(|err| {
-        ModPlatformErrors::DeserializationError(format!(
+        ModPlatformsErrors::DeserializationError(format!(
             "Failed to deserialize modrinth error: {}",
             err
         ))
@@ -79,17 +76,10 @@ pub async fn get_project(
 }
 
 
-pub async fn get_multiple_projects(user_agent: &str, ) -> Result<(), ModrinthErrors> {
+pub async fn get_multiple_projects(client: Client, user_agent: &str, ) -> Result<(), _> {
     let mut params: Vec<String> = vec![];
     let url = format!("{}/search", MODRINTH_API);
-    let client = Client::new();
-
     // Maxium Limit is 100.
-;
-
-
-
-
 
     Ok(())
 }

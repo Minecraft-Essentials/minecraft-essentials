@@ -2,10 +2,9 @@
 #![warn(clippy::pedantic)]
 
 use crate::trait_alias::*;
-use reqwest::{
-    header::{self, HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE},
-    Client,
-};
+use crate::Client;
+
+use reqwest::header::{self, HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE}
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -29,8 +28,7 @@ pub struct XblOutput {
     pub display_claims: DisplayClaims,
 }
 
-pub fn xbl(token: &str) -> impl AsyncSendSync<Result<XblOutput, AuthErrors>> {
-    let client = Client::new();
+pub fn xbl(client: Client, token: &str) -> impl AsyncSendSync<Result<XblOutput, AuthErrors>> {
     let url = format!("https://user.auth.xboxlive.com/user/authenticate");
     let rps_ticket = format!("d={}", token);
     let mut headers = HeaderMap::new();
@@ -92,6 +90,7 @@ pub struct XtsOutput {
 }
 
 pub fn xsts(
+    client: Client,
     xbl_token: &str,
     bedrock_rel: bool,
 ) -> impl AsyncSendSync<Result<XtsOutput, AuthErrors>> {
@@ -104,7 +103,6 @@ pub fn xsts(
         java_party
     };
 
-    let client = Client::new();
     let mut headers = header::HeaderMap::new();
     headers.insert(
         "Content-Type",
