@@ -1,8 +1,6 @@
 use std::{env, fs, path::PathBuf};
 
-use crate::{errors::LaunchErrors, trait_alias::AsyncSendSync};
-use reqwest::Client;
-
+use crate::{errors::LaunchErrors, trait_alias::AsyncSendSync, HTTP::Client};
 use super::download_files;
 
 // use super::download_files;
@@ -80,6 +78,7 @@ fn java_url(jre: JRE, version: &str) -> String {
 }
 
 pub fn get_java(
+    client: Client,
     dir: &PathBuf,
     version: &str,
     jre: JRE,
@@ -99,7 +98,7 @@ pub fn get_java(
             dir_clone.push("jre.tar.gz");
         }
 
-        let _ = download_jre(url, dir_clone, &user_agent).await;
+        let _ = download_jre(client, url, dir_clone, &user_agent).await;
 
         Ok(())
     }
@@ -107,8 +106,7 @@ pub fn get_java(
     //TODO: Donwload and extract JARs
 }
 
-async fn download_jre(url: String, dir: PathBuf, user_agent: &str) -> Result<(), LaunchErrors> {
-    let client = Client::new();
+async fn download_jre(client: Client, url: String, dir: PathBuf, user_agent: &str) -> Result<(), LaunchErrors> {
 
     match download_files(client.clone(), user_agent, &dir, url).await {
         Ok(_) => {}

@@ -1,14 +1,14 @@
 use crate::{
     structs::{ManifestVersion, VersionManifest},
     MANIFEST_URL,
+    HTTP::{header::USER_AGENT, Client}
 };
-use reqwest::{header::USER_AGENT, Client};
 
 pub async fn get_version_manifest(
+    client: Client,
     url: &str,
     user_agent: &str,
 ) -> Result<VersionManifest, Box<dyn std::error::Error>> {
-    let client = Client::new();
     let result = client
         .get(url)
         .header(USER_AGENT, user_agent)
@@ -20,9 +20,7 @@ pub async fn get_version_manifest(
     Ok(version_manifest)
 }
 
-pub async fn get_manifest(user_agent: &str) -> Result<ManifestVersion, Box<dyn std::error::Error>> {
-    let client = Client::new();
-
+pub async fn get_manifest(client: Client, user_agent: &str) -> Result<ManifestVersion, Box<dyn std::error::Error>> {
     let result = client
         .get(MANIFEST_URL)
         .header(USER_AGENT, user_agent)

@@ -1,6 +1,7 @@
-#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code, missing_docs)]
 #![warn(clippy::pedantic)]
+
+pub use reqwest as HTTP;
 
 // Modules
 /// Error handling module for the Minecraft-Essentials library.
@@ -23,10 +24,10 @@ mod tests;
 pub mod launch;
 
 #[cfg(feature = "auth")]
-mod auth;
+pub mod auth;
 
 #[cfg(feature = "modrinth")]
-mod modrinth;
+pub mod modrinth;
 
 #[cfg(feature = "auth")]
 pub use auth::AuthInfo as CustomAuthData;
@@ -38,5 +39,3 @@ pub const EXPERIMENTAL_MESSAGE: &str =
 #[cfg(feature = "launch")]
 pub(crate) const MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
-
-

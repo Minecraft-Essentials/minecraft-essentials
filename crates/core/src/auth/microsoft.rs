@@ -163,13 +163,13 @@ pub struct OuathToken {
 }
 
 pub fn ouath_token(
+    client: reqwest::Client,
     code: &str,
     client_id: &str,
     port: u16,
     client_secret: &str,
 ) -> impl AsyncSendSync<Result<OuathToken, AuthErrors>> {
     let url = format!("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
-    let client = Client::new();
     let body = format!(
       "client_id={}&scope={}&redirect_uri=http://localhost:{}&grant_type=authorization_code&code={}&client_secret={}", 
       client_id, SCOPE, port, code, client_secret);
@@ -227,12 +227,12 @@ pub struct CodeInfo {
 }
 
 pub fn device_authentication_code(
+    client: reqwest::Client,
     client_id: &str,
 ) -> impl AsyncSendSync<Result<CodeResponse, reqwest::Error>> {
     let request_url =
         format!("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode",);
     let body = format!("client_id={}&scope={}", client_id, SCOPE);
-    let client = reqwest::Client::new();
 
     device_internal(client, request_url, body)
 }
@@ -252,8 +252,8 @@ async fn device_internal(
 pub fn authenticate_device(
     device_code: &str,
     client_id: &str,
+    client: reqwest::Client,
 ) -> impl AsyncSendSync<Result<CodeInfo, reqwest::Error>> {
-    let client = Client::new();
     let request_url = format!("https://login.microsoftonline.com/common/consumers/v2.0/token",);
 
     let body = format!(

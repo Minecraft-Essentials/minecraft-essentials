@@ -60,6 +60,7 @@
         {
           packages = with pkgs; [
             openssl
+						pkg-config
 						hyperfine
             rust-analyzer
 						bun # needed for node

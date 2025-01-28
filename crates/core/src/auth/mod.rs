@@ -53,10 +53,10 @@ struct MojangResponse {
 }
 
 pub fn bearer_token(
+    client: Client,
     userhash: &str,
     xsts_token: &str,
 ) -> impl AsyncSendSync<Result<AuthInfo, Box<dyn Error>>> {
-    let client = Client::new();
     let identity_token = format!("XBL3.0 x={};{}", userhash, xsts_token);
     let body = json!({
         "identityToken": identity_token
