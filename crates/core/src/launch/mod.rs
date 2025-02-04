@@ -30,9 +30,9 @@ pub(crate) async fn launch_minecraft(
     user_agent: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
-    let manifest = minecraft::get_manifest(user_agent).await?;
+    let manifest = minecraft::get_manifest(client.clone(), user_agent).await?;
     let version_url = manifest.versions.url.clone();
-    let version_manifest = minecraft::get_version_manifest(&version_url, user_agent).await?;
+    let version_manifest = minecraft::get_version_manifest(client, &version_url, user_agent).await?;
 
     println!("Version Manifest: {:#?}", version_manifest);
 

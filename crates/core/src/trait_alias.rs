@@ -1,9 +1,9 @@
-#![forbid(unsafe_code, missing_docs)]
+#![forbid(unsafe_code)]
 #![warn(clippy::pedantic)]
 
 use std::future::Future;
 
-// Optoinal Traits
+// An Optoinal Traits
 pub trait Optional<T>: Into<Option<T>> {}
 impl<T> Optional<T> for T where T: Into<Option<T>> {}
 impl<T> Optional<T> for Option<T> {}
