@@ -8,29 +8,29 @@
 /// This module contains all the error types and related functionality
 /// for error handling within the library.
 pub use core::errors;
-pub(crate) mod trait_alias;
+pub(crate) use core::trait_alias;
 
 /// Structs module for the Minecraft-Essentials library.
 ///
 /// This module contains all the structs and related functionality
 /// for structs within the library.
-pub mod structs;
+pub use core::structs;
 #[cfg(test)]
 mod tests;
 
 #[cfg(feature = "launch")]
 /// Launch module for the Minecraft-Essentials library.
-pub mod launch;
+use core::launch;
 
 #[cfg(feature = "auth")]
-mod auth;
+use core::auth;
 
 #[cfg(feature = "modrinth")]
-mod modrinth;
+use core::modrinth;
 
 use std::path::PathBuf;
 
-use core::auth::microsoft::CodeResponse;
+use core::{auth::microsoft::CodeResponse, HTTP::Client};
 
 #[cfg(feature = "auth")]
 pub use core::auth::AuthInfo as CustomAuthData;
@@ -291,8 +291,9 @@ impl AuthenticationBuilder {
 
     /// Gets the code for device code method
     pub async fn get_info(&mut self) -> AuthInfo {
+        let client = Client::new();
         if self.auth_type == AuthType::DeviceCode {
-            let code = device_authentication_code(&self.client_id).await.unwrap();
+            let code = device_authentication_code(client, &self.client_id).await.unwrap();
             AuthInfo {
                 device_code: Some(code),
                 ouath_url: None,
@@ -309,12 +310,13 @@ impl AuthenticationBuilder {
     /// Launchs the authentication process.
     pub async fn launch(&mut self) -> Result<CustomAuthData, Box<dyn std::error::Error>> {
         dbg!(&self.auth_type, &self.client_id);
+        let client = Client::new();
         match self.auth_type {
             AuthType::Oauth => {
                 dbg!(&self.client_secrect, self.port);
                 print!("{}", self.client_id);
                 let server = ouath(self.port)?.await?;
-                let server_token = ouath_token(
+                let server_token = ouath_token(client,
                     server
                         .code
                         .expect("\x1b[31mXbox Expected code.\x1b[0m")
@@ -324,8 +326,8 @@ impl AuthenticationBuilder {
                     &self.client_secrect,
                 )
                 .await?;
-                let xbl = xbl(&server_token.access_token).await?;
-                let xts = xsts(&xbl.token, self.bedrockrel).await?;
+                let xbl = xbl(client, &server_token.access_token).await?;
+                let xts = xsts(client, &xbl.token, self.bedrockrel).await?;
 
                 if self.bedrockrel {
                     Ok(CustomAuthData {
@@ -335,15 +337,15 @@ impl AuthenticationBuilder {
                         xts_token: Some(xts.token),
                     })
                 } else {
-                    Ok(bearer_token(&xbl.display_claims.xui[0].uhs, &xts.token).await?)
+                    Ok(bearer_token(client, &xbl.display_claims.xui[0].uhs, &xts.token).await?)
                 }
             }
             AuthType::DeviceCode => {
                 print!("{} \n Status: WIP (Work In Progress)", EXPERIMENTAL_MESSAGE);
-                let code = device_authentication_code(&self.client_id).await?;
-                let code_token = authenticate_device(&code.device_code, &self.client_id).await?;
-                let xbl = xbl(&code_token.token).await?;
-                let xts = xsts(&xbl.token, self.bedrockrel).await?;
+                let code = device_authentication_code(client, &self.client_id).await?;
+                let code_token = authenticate_device(client,&code.device_code, &self.client_id).await?;
+                let xbl = xbl(client, &code_token.token).await?;
+                let xts = xsts(client, &xbl.token, self.bedrockrel).await?;
 
                 if self.bedrockrel {
                     Ok(CustomAuthData {
@@ -353,7 +355,7 @@ impl AuthenticationBuilder {
                         xts_token: Some(xts.token),
                     })
                 } else {
-                    Ok(bearer_token(&xbl.display_claims.xui[0].uhs, &xts.token).await?)
+                    Ok(bearer_token(client, &xbl.display_claims.xui[0].uhs, &xts.token).await?)
                 }
             }
         }
