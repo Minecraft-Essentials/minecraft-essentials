@@ -1,4 +1,4 @@
-#![forbid(unsafe_code, missing_docs)]
+#![forbid(unsafe_code)]
 #![warn(clippy::pedantic)]
 
 pub use reqwest as HTTP;
@@ -9,7 +9,9 @@ pub use reqwest as HTTP;
 /// This module contains all the error types and related functionality
 /// for error handling within the library.
 pub mod errors;
-pub(crate) mod trait_alias;
+
+/// Trait aliases for libraires
+pub mod trait_alias;
 
 /// Structs module for the Minecraft-Essentials library.
 ///

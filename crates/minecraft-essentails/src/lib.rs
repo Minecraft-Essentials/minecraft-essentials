@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("../../../README.md")]
 #![forbid(unsafe_code, missing_docs)]
 #![warn(clippy::pedantic)]
 
@@ -30,7 +30,7 @@ use core::modrinth;
 
 use std::path::PathBuf;
 
-use core::{auth::microsoft::CodeResponse, HTTP::Client};
+use core::{auth::microsoft::CodeResponse, HTTP::{self, Client}};
 
 #[cfg(feature = "auth")]
 pub use core::auth::AuthInfo as CustomAuthData;
@@ -316,7 +316,7 @@ impl AuthenticationBuilder {
                 dbg!(&self.client_secrect, self.port);
                 print!("{}", self.client_id);
                 let server = ouath(self.port)?.await?;
-                let server_token = ouath_token(client,
+                let server_token = ouath_token(client.clone(),
                     server
                         .code
                         .expect("\x1b[31mXbox Expected code.\x1b[0m")
@@ -326,8 +326,8 @@ impl AuthenticationBuilder {
                     &self.client_secrect,
                 )
                 .await?;
-                let xbl = xbl(client, &server_token.access_token).await?;
-                let xts = xsts(client, &xbl.token, self.bedrockrel).await?;
+                let xbl = xbl(client.clone(), &server_token.access_token).await?;
+                let xts = xsts(client.clone(), &xbl.token, self.bedrockrel).await?;
 
                 if self.bedrockrel {
                     Ok(CustomAuthData {
@@ -342,10 +342,10 @@ impl AuthenticationBuilder {
             }
             AuthType::DeviceCode => {
                 print!("{} \n Status: WIP (Work In Progress)", EXPERIMENTAL_MESSAGE);
-                let code = device_authentication_code(client, &self.client_id).await?;
-                let code_token = authenticate_device(client,&code.device_code, &self.client_id).await?;
-                let xbl = xbl(client, &code_token.token).await?;
-                let xts = xsts(client, &xbl.token, self.bedrockrel).await?;
+                let code = device_authentication_code(client.clone(), &self.client_id).await?;
+                let code_token = authenticate_device(client.clone(),&code.device_code, &self.client_id).await?;
+                let xbl = xbl(client.clone(), &code_token.token).await?;
+                let xts = xsts(client.clone(), &xbl.token, self.bedrockrel).await?;
 
                 if self.bedrockrel {
                     Ok(CustomAuthData {
@@ -539,11 +539,12 @@ impl DeviceCode {
     /// # Returns
     ///
     /// * `impl trait_alias::AsyncSendSync<Result<Self, reqwest::Error>>` - A future that resolves to a `Result` containing the `DeviceCode` instance or an error.
-    pub fn new(client_id: &str) -> impl trait_alias::AsyncSendSync<Result<Self, reqwest::Error>> {
+    pub fn new(client_id: &str) -> impl trait_alias::AsyncSendSync<Result<Self, HTTP::Error>> {
         println!("{}", EXPERIMENTAL_MESSAGE);
+        let client = Client::new();
         let client_id_str = client_id.to_string();
         async move {
-            let response_data = device_authentication_code(&client_id_str).await?;
+            let response_data = device_authentication_code(client, &client_id_str).await?;
 
             Ok(Self {
                 url: response_data.verification_uri,
@@ -586,9 +587,10 @@ impl DeviceCode {
         &self,
         bedrock_relm: bool,
     ) -> Result<CustomAuthData, Box<dyn std::error::Error>> {
-        let code = authenticate_device(&self.device_code, &self.client_id).await?;
-        let xbl = xbl(&code.token).await?;
-        let xts = xsts(&xbl.token, bedrock_relm).await?;
+        let client = Client::new();
+        let code = authenticate_device(client.clone(), &self.device_code, &self.client_id).await?;
+        let xbl = xbl(client.clone(), &code.token).await?;
+        let xts = xsts(client.clone(), &xbl.token, bedrock_relm).await?;
 
         if bedrock_relm {
             Ok(CustomAuthData {
@@ -598,7 +600,7 @@ impl DeviceCode {
                 xts_token: Some(xts.token),
             })
         } else {
-            Ok(bearer_token(&xbl.display_claims.xui[0].uhs, &xts.token).await?)
+            Ok(bearer_token(client, &xbl.display_claims.xui[0].uhs, &xts.token).await?)
         }
     }
 
@@ -617,48 +619,5 @@ impl DeviceCode {
     )]
     pub async fn refresh(&self) {
         println!("This method is deprecated and will be removed in the next minor version. Please refer to the updated documentation on using the `AuthenticationBuilder`.");
-    }
-}
-
-/// Modrinth API Implementation for your Minecraft Modpack Launcher.
-pub struct Modrinth {
-    access_token: String,
-    user_agent: String,
-}
-
-#[cfg(feature = "modrinth")]
-/// Github Repo Settings for Modrinth
-pub struct GithubModrinth {
-    /// Used as a user Agent to uniquely identify your app or something.
-    pub owner: String,
-    /// Used as a user Agent to uniquely identify your app or something.
-    pub repo: String,
-    /// Your Project/Program Version
-    pub project_version: String,
-    /// Used to authenticate with Modrinth API
-    /// Optional if you are using something that doesn't require authentication.
-    pub access_token: Option<String>,
-}
-
-#[cfg(feature = "modrinth")]
-impl Modrinth {
-    /// Create a new instance of using Modrinth API.
-    pub fn init(github: GithubModrinth, contact_email: String) -> Self {
-        let user_agent = format!(
-            "{}/{}/{} ({})",
-            github.owner, github.repo, github.project_version, contact_email
-        );
-        Self {
-            access_token: github.access_token.unwrap_or("".to_string()),
-            user_agent,
-        }
-    }
-
-    /// Get a project from Modrinth.
-    pub async fn get_project(
-        &self,
-        project: &str,
-    ) -> Result<modrinth::projects::ModrinthProject, errors::ModrinthErrors> {
-        modrinth::projects::get_project(project, &self.user_agent).await
     }
 }

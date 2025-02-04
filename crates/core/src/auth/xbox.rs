@@ -1,10 +1,10 @@
-#![forbid(unsafe_code, missing_docs)]
+#![forbid(unsafe_code)]
 #![warn(clippy::pedantic)]
 
 use crate::trait_alias::*;
-use crate::Client;
+use reqwest::Client;
 
-use reqwest::header::{self, HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE}
+use reqwest::header::{self, HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -21,6 +21,7 @@ pub struct DisplayClaims {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
+/// Output of Xbox live auth,
 pub struct XblOutput {
     pub issue_instant: String,
     pub not_after: String,

@@ -1,6 +1,7 @@
 [workspace]
-members = ["crates/core", "crates/minecraft-essentails", "crates/node"]
-default-members = ["crates/minecraft-essentails", "crates/node"]
+members = ["crates/core", "crates/minecraft-essentails"]
+default-members = ["crates/minecraft-essentails"]
+features = ["default"]
 
 [workspace.package]
 version = "0.2.11"

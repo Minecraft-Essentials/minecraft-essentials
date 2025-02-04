@@ -6,7 +6,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::{io::AsyncReadExt, net::TcpListener, sync::mpsc};
 
-pub(crate) const SCOPE: &str = "XboxLive.signin%20XboxLive.offline_access";
+pub const SCOPE: &str = "XboxLive.signin%20XboxLive.offline_access";
 
 /// Temporary http server Infomation.
 #[derive(Deserialize, Debug)]
@@ -250,9 +250,9 @@ async fn device_internal(
 }
 
 pub fn authenticate_device(
+    client: reqwest::Client,
     device_code: &str,
     client_id: &str,
-    client: reqwest::Client,
 ) -> impl AsyncSendSync<Result<CodeInfo, reqwest::Error>> {
     let request_url = format!("https://login.microsoftonline.com/common/consumers/v2.0/token",);
 

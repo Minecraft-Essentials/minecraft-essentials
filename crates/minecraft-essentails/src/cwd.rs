@@ -5,13 +5,13 @@ use minecraft_essentials::{AuthType, AuthenticationBuilder, LaunchBuilder};
 
 #[derive(Parser)]
 #[command(version, long_about = None)]
-struct Cli {
+pub(crate) struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    pub command: Commands,
 }
 
 #[derive(Subcommand)]
-enum Commands {
+pub(crate) enum Commands {
     Version {},
     /// Oauth Check command.
     Oauth(OauthArgs),
@@ -22,15 +22,15 @@ enum Commands {
 }
 
 #[derive(Args)]
-struct OauthArgs {
-    client_id: String,
-    client_secret: String,
-    port: Option<u16>,
-    bedrockrelm: Option<bool>,
+pub(crate) struct OauthArgs {
+   pub client_id: String,
+   pub client_secret: String,
+   pub port: Option<u16>,
+   pub bedrockrelm: Option<bool>,
 }
 
 #[derive(Args)]
-struct LaucnhArgs {
+pub(crate) struct LaucnhArgs {
     // Java Args
     min_memory: usize,
     max_memory: Option<usize>,
@@ -55,6 +55,7 @@ struct LaucnhArgs {
 }
 
 #[derive(Args)]
-struct DeviceCodeArgs {
-    client_id: String,
-    bedrockrelm: bool,
+pub(crate) struct DeviceCodeArgs {
+   pub client_id: String,
+   pub bedrockrelm: bool,
+}
