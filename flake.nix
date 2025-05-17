@@ -54,18 +54,22 @@
         toolchain = pkgs.fenix.stable.withComponents [
           "rustc"
           "cargo"
+					"rustfmt"
           "clippy"
         ];
         in mkShell
         {
           packages = with pkgs; [
             openssl
+						napi-rs-cli # Useful for building node
 						pkg-config
 						hyperfine
             rust-analyzer
 						bun # needed for node
             toolchain
-          ];
+          ] ++ lib.optionals stdenv.isDarwin [
+						pkgs.apple-sdk_15
+					];
         };
       };
 	};

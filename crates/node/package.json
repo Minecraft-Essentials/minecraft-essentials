@@ -17,11 +17,7 @@
 	},
 	"license": "BSD-3-Clause",
 	"devDependencies": {
-		"@napi-rs/cli": "^2.17.0",
-		"ava": "^5.1.1"
-	},
-	"ava": {
-		"timeout": "3m"
+		"@napi-rs/cli": "^2.17.0"
 	},
 	"packageManager": "bun@1.0.25",
 	"engines": {
@@ -32,7 +28,6 @@
 		"build": "napi build --platform --release ./dist",
 		"build:debug": "napi build --platform ./dist",
 		"prepublishOnly": "napi prepublish -t npm",
-		"test": "ava",
 		"universal": "napi universal",
 		"version": "napi version",
 		"clean": "rm -rf ./dist && cargo clean"

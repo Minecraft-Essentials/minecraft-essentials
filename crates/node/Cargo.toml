@@ -1,6 +1,6 @@
 [package]
-edition = "2021"
 name = "node"
+edition.workspace = true
 version.workspace = true
 publish = false
 
@@ -8,7 +8,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "2.16.13", default-features = false, features = ["napi4", "tokio"] }
+napi = { version = "2.16.13", default-features = false, features = ["napi4", "tokio", "async"] }
 napi-derive = "2.16.13"
 core = { path = "../core" }
 

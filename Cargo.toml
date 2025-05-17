@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/core", "crates/minecraft-essentails"]
+members = ["crates/core", "crates/minecraft-essentails", "crates/node"]
 default-members = ["crates/minecraft-essentails"]
 features = ["default"]
 
