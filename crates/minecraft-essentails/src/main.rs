@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-use clap::{Args, Parser, Subcommand};
-use minecraft_essentials::{AuthType, AuthenticationBuilder, LaunchBuilder};
+use clap::Parser;
+use minecraft_essentials::{AuthType, AuthenticationBuilder};
 use cwd::{Commands, Cli, DeviceCodeArgs, OauthArgs};
 
 mod cwd;
@@ -13,7 +12,7 @@ async fn main() {
         Commands::DeviceCode(device_code_args) => handle_device_code(device_code_args).await,
         Commands::Version {} => println!("{}", env!("CARGO_PKG_VERSION")),
         // TODO: HANDLE LAUNCH
-        Commands::Launch(arg) => todo!(),
+        Commands::Launch(_arg) => todo!(),
     }
 }
 
