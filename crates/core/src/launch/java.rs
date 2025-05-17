@@ -3,36 +3,35 @@ use std::{env, fs, path::PathBuf};
 use crate::{errors::LaunchErrors, trait_alias::AsyncSendSync, HTTP::Client};
 use super::download_files;
 
-// use super::download_files;
 /// Java Runtime Environment (JRE) for Minecraft.
 #[derive(Debug, Clone)]
 pub enum JRE {
-    /// Adoptium or known as Eclipse Temurin is the Java Runtime Environment (JRE) by Eclipse Foundation.
-    /// It is open-source and free to use for all Java projects.
     Adoptium,
-    /// Zulu is a free and closed-sourced Java Runtime Environment (JRE) by Azul Systems.
-    /// It is not open-source but free to use for all Java projects.
-    /// WIP: Not Supported Yet
     Zulu,
-    /// GraalVM is a free and open-source Java Runtime Environment (JRE) by Oracle.
-    /// It is open-source and free to use for all Java projects.
     GraalVM,
-    //TODO: More Java Runtime Enviroments (JRE) Supported to make it not limited
 }
 
-fn java_url(jre: JRE, version: &str) -> String {
+struct ArchUrl {
+    arch: Option<&'static str>,
+    os: Option<&'static str>,
+    url: String,
+}
+
+fn java_url(jre: JRE, version: &str) -> Option<String> {
+    let os = env::consts::OS;
+    let arch = env::consts::ARCH;
+
     match jre {
         JRE::Adoptium => {
-            let _ = arch_support(vec!["x86_64", "x86", "aarch64", "arm"]);
-            arch_url(vec![
+            arch_support(&["x86_64", "x86", "aarch64", "arm"]).ok()?;
+
+            let urls = vec![
                 ArchUrl {
-                    arch: Some(String::from("x86_64")),
+                    arch: Some("x86_64"),
                     os: None,
                     url: format!(
-                        "https://api.adoptium.net/v3/binary/latest/{}/ga/{}/{}/jre/hotspot/normal/eclipse",
-                        version,
-                        std::env::consts::OS,
-                        "x64"
+                        "https://api.adoptium.net/v3/binary/latest/{}/ga/{}/x64/jre/hotspot/normal/eclipse",
+                        version, os
                     ),
                 },
                 ArchUrl {
@@ -40,25 +39,25 @@ fn java_url(jre: JRE, version: &str) -> String {
                     os: None,
                     url: format!(
                         "https://api.adoptium.net/v3/binary/latest/{}/ga/{}/{}/jre/hotspot/normal/eclipse",
-                        version,
-                        std::env::consts::OS,
-                        std::env::consts::ARCH
+                        version, os, arch
                     ),
                 },
-            ]).unwrap_or(String::from(""))
+            ];
+            arch_url(urls)
         }
-        JRE::Zulu => todo!(),
-        JRE::GraalVM => {
-            let _ = arch_support(vec!["x86_64", "x86", "aarch64"]);
 
-            arch_url(vec![
+        JRE::Zulu => todo!(),
+
+        JRE::GraalVM => {
+            arch_support(&["x86_64", "x86", "aarch64"]).ok()?;
+
+            let urls = vec![
                 ArchUrl {
-                    arch: Some(String::from("x86")),
-                    os: Some(String::from("widnows")),
+                    arch: Some("x86"),
+                    os: Some("windows"),
                     url: format!(
                         "https://download.oracle.com/graalvm/{}/latest/graalvm-jdk-{}_windows-x64_bin.zip",
-                        version,
-                        version,
+                        version, version
                     ),
                 },
                 ArchUrl {
@@ -66,13 +65,11 @@ fn java_url(jre: JRE, version: &str) -> String {
                     os: None,
                     url: format!(
                         "https://download.oracle.com/graalvm/{}/latest/graalvm-jdk-{}_{}-{}_bin.tar.gz",
-                        version,
-                        version,
-                        env::consts::OS,
-                        env::consts::ARCH,
+                        version, version, os, arch
                     ),
-                }
-            ]).unwrap_or(String::from(""))
+                },
+            ];
+            arch_url(urls)
         }
     }
 }
@@ -84,96 +81,68 @@ pub fn get_java(
     jre: JRE,
     user_agent: &str,
 ) -> impl AsyncSendSync<Result<(), LaunchErrors>> {
-    dbg!(&jre, &user_agent, &version, &dir);
-    let url = java_url(jre, version);
+    let output_path = {
+        let mut path = dir.clone();
+        if cfg!(target_os = "windows") {
+            path.push("jre.zip");
+        } else {
+            path.push("jre.tar.gz");
+        }
+        path
+    };
 
-    let mut dir_clone = dir.clone();
     let user_agent = user_agent.to_owned();
-    // println!("{}", url);
+    let version = version.to_owned(); 
+    let jre = jre.clone();
 
     async move {
-        if cfg!(target_os = "Windows") {
-            dir_clone.push("jre.zip")
-        } else {
-            dir_clone.push("jre.tar.gz");
-        }
+        let url = java_url(jre, &version).ok_or_else(|| {
+            LaunchErrors::Requirements("Unsupported platform or JRE URL not found".to_string())
+        })?;
 
-        let _ = download_jre(client, url, dir_clone, &user_agent).await;
-
-        Ok(())
+        download_jre(client, url, output_path, &user_agent).await
     }
-
-    //TODO: Donwload and extract JARs
 }
 
-async fn download_jre(client: Client, url: String, dir: PathBuf, user_agent: &str) -> Result<(), LaunchErrors> {
 
-    match download_files(client.clone(), user_agent, &dir, url).await {
-        Ok(_) => {}
-        Err(e) => {
-            return Err(LaunchErrors::Requirements(format!(
-                "Failed to download JRE Due to: {}",
-                e
-            )))
-        }
+async fn download_jre(
+    client: Client,
+    url: String,
+    path: PathBuf,
+    user_agent: &str,
+) -> Result<(), LaunchErrors> {
+    download_files(client.clone(), user_agent, &path, url).await.map_err(|e| {
+        LaunchErrors::Requirements(format!("Failed to download JRE due to: {}", e))
+    })?;
+
+    if path.exists() && path.is_file() {
+        fs::remove_file(&path).map_err(|e| {
+            LaunchErrors::Requirements(format!("Failed to clean up file: {}", e))
+        })?;
     }
 
-    if dir.exists() && dir.is_file() {
-        let _ = fs::remove_file(dir);
-    }
     Ok(())
 }
 
-struct ArchUrl {
-    arch: Option<String>,
-    os: Option<String>,
-    url: String,
+fn arch_url(candidates: Vec<ArchUrl>) -> Option<String> {
+    let arch = env::consts::ARCH;
+    let os = env::consts::OS;
+
+    candidates.into_iter().find_map(|entry| match (entry.arch, entry.os) {
+        (Some(a), Some(o)) if a == arch && o == os => Some(entry.url),
+        (Some(a), None) if a == arch => Some(entry.url),
+        (None, Some(o)) if o == os => Some(entry.url),
+        (None, None) => Some(entry.url),
+        _ => None,
+    })
 }
 
-fn arch_url(arch: Vec<ArchUrl>) -> Option<String> {
-    fn arch_url(arch: Vec<ArchUrl>, os: Option<String>) -> Option<String> {
-        if let None = os {
-            for arch in &arch {
-                // Deref to get a reference to ArchUrl
-                match &arch.arch {
-                    Some(archsep) => {
-                        if archsep == env::consts::ARCH {
-                            return Some(arch.url.clone()); // Clone the url string to return
-                        }
-                    }
-                    None => {
-                        return Some(arch.url.clone());
-                    }
-                }
-            }
-        } else {
-            while let Some(os) = os.as_deref() {
-                if os == env::consts::OS {
-                    for arch in &arch {
-                        match &arch.arch {
-                            Some(archsep) => {
-                                if archsep == env::consts::ARCH {
-                                    return Some(arch.url.clone()); // Clone the url string to return
-                                }
-                            }
-                            None => {
-                                return Some(arch.url.clone());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        None // Return None if no matching url is found
-    }
-    None // Return None if no matching url is found
-}
-// Archtechure support function that will error if wrong archtechure for all jre/jdk's
-fn arch_support(supports: Vec<&str>) -> Result<(), LaunchErrors> {
-    match std::env::consts::ARCH {
-        supports => Ok(()),
-        _ => Err(LaunchErrors::UnsupportedArchitecture(
-            std::env::consts::ARCH.to_owned(),
-        )),
+fn arch_support(supported: &[&str]) -> Result<(), LaunchErrors> {
+    if supported.contains(&env::consts::ARCH) {
+        Ok(())
+    } else {
+        Err(LaunchErrors::UnsupportedArchitecture(
+            env::consts::ARCH.to_string(),
+        ))
     }
 }
