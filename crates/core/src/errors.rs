@@ -24,6 +24,8 @@ pub enum AuthErrors {
     AcceptConnectionError(String),
     /// Response Failed: {0}
     ResponseError(String),
+    /// Mismatched authentication type: {0}
+    MismatchedAuthType(String),
 }
 
 /// The `LaunchErrors` enum represents potential errors that can occur during Launch-related operations.

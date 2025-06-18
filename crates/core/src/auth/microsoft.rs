@@ -164,15 +164,31 @@ pub struct OuathToken {
 
 pub fn ouath_token(
     client: reqwest::Client,
-    code: &str,
+    refresh_token: Option<String>,
+    code: Option<&str>,
     client_id: &str,
+    scope: &str,
     port: u16,
     client_secret: &str,
 ) -> impl AsyncSendSync<Result<OuathToken, AuthErrors>> {
     let url = format!("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
-    let body = format!(
-      "client_id={}&scope={}&redirect_uri=http://localhost:{}&grant_type=authorization_code&code={}&client_secret={}", 
-      client_id, SCOPE, port, code, client_secret);
+    let mut body = format!(
+        "client_id={}&scope={}&client_secret={}",
+        client_id, scope, client_secret
+    );
+
+    if let Some(token) = refresh_token {
+        body.push_str(&format!(
+            "&grant_type=refresh_token&refresh_token={}",
+            token
+        ));
+    } else if let Some(auth_code) = code {
+        let redirect_uri = format!("http://localhost:{}", port);
+        body.push_str(&format!(
+            "&grant_type=authorization_code&code={}&redirect_uri={}",
+            auth_code, redirect_uri
+        ));
+    };
 
     async move {
         'out: {

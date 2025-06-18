@@ -8,7 +8,6 @@ pub trait Optional<T>: Into<Option<T>> {}
 impl<T> Optional<T> for T where T: Into<Option<T>> {}
 impl<T> Optional<T> for Option<T> {}
 
-
 // Async Traits
 pub trait Async<O>: Future<Output = O> {}
 impl<T, O> Async<O> for T where T: Future<Output = O> {}

@@ -30,7 +30,10 @@ use core::modrinth;
 
 use std::path::PathBuf;
 
-use core::{auth::microsoft::CodeResponse, HTTP::{self, Client}};
+use core::{
+    HTTP::{self, Client},
+    auth::microsoft::CodeResponse,
+};
 
 #[cfg(feature = "auth")]
 pub use core::auth::AuthInfo as CustomAuthData;
@@ -38,13 +41,12 @@ pub use core::auth::AuthInfo as CustomAuthData;
 #[cfg(feature = "auth")]
 use auth::{
     bearer_token,
-    microsoft::{authenticate_device, device_authentication_code, ouath, ouath_token, SCOPE},
+    microsoft::{SCOPE, authenticate_device, device_authentication_code, ouath, ouath_token},
     xbox::{xbl, xsts},
 };
 
 #[cfg(feature = "launch")]
 use launch::JavaJRE;
-
 
 use serde::{Deserialize, Serialize};
 use trait_alias::Optional;
@@ -208,6 +210,12 @@ pub enum AuthType {
     /// This variant is used for device code authentication with Minecraft.
     #[cfg(feature = "auth")]
     DeviceCode,
+
+    /// Refreshing token method
+    ///
+    /// This is used for refreshing your token with Minecraft.
+    #[cfg(feature = "auth")]
+    Refresh,
 }
 
 /// Represents a builder for authentication configurations.
@@ -219,9 +227,11 @@ pub enum AuthType {
 pub struct AuthenticationBuilder {
     auth_type: AuthType,
     client_id: String,
+    scope: Option<String>,
     port: u16,
     client_secrect: String,
     bedrockrel: bool,
+    refresh_token: Option<String>,
 }
 
 /// Represents authentication information.
@@ -243,9 +253,11 @@ impl AuthenticationBuilder {
         Self {
             auth_type: AuthType::Oauth,
             client_id: "".to_string(),
+            scope: Some(SCOPE.to_string()),
             port: 8000,
             client_secrect: "".to_string(),
             bedrockrel: false,
+            refresh_token: None,
         }
     }
 
@@ -279,6 +291,12 @@ impl AuthenticationBuilder {
         self
     }
 
+    /// Ability to set scope for oauth
+    pub fn scope(&mut self, scope: Option<String>) -> &mut Self {
+        self.scope = scope;
+        self
+    }
+
     /// Bedrock relm related that only need xts token not bearer.
     pub fn bedrockrel<T: Optional<bool>>(&mut self, bedrock_rel: T) -> &mut Self {
         let bedrock_rel = match bedrock_rel.into() {
@@ -289,17 +307,36 @@ impl AuthenticationBuilder {
         self
     }
 
+    /// Generate a refresh token alongside.
+    pub fn refresh_token(
+        &mut self,
+        refresh_token: Option<String>,
+    ) -> Result<&mut Self, errors::AuthErrors> {
+        if self.auth_type != AuthType::Refresh {
+            return Err(errors::AuthErrors::MismatchedAuthType(
+                "Expected Refresh Token Flow".to_string(),
+            ));
+        }
+        self.refresh_token = refresh_token;
+        Ok(self)
+    }
+
     /// Gets the code for device code method
     pub async fn get_info(&mut self) -> AuthInfo {
         let client = Client::new();
         if self.auth_type == AuthType::DeviceCode {
-            let code = device_authentication_code(client, &self.client_id).await.unwrap();
+            let code = device_authentication_code(client, &self.client_id)
+                .await
+                .unwrap();
             AuthInfo {
                 device_code: Some(code),
                 ouath_url: None,
             }
         } else {
-            let url = format!("https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize/?client_id={}&response_type=code&redirect_uri=http://localhost:{}&response_mode=query&scope={}&state=12345", self.client_id, self.port, SCOPE);
+            let url = format!(
+                "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize/?client_id={}&response_type=code&redirect_uri=http://localhost:{}&response_mode=query&scope={}&state=12345",
+                self.client_id, self.port, SCOPE
+            );
             AuthInfo {
                 device_code: None,
                 ouath_url: Some(url),
@@ -311,17 +348,23 @@ impl AuthenticationBuilder {
     pub async fn launch(&mut self) -> Result<CustomAuthData, Box<dyn std::error::Error>> {
         dbg!(&self.auth_type, &self.client_id);
         let client = Client::new();
+
         match self.auth_type {
             AuthType::Oauth => {
                 dbg!(&self.client_secrect, self.port);
                 print!("{}", self.client_id);
                 let server = ouath(self.port)?.await?;
-                let server_token = ouath_token(client.clone(),
-                    server
-                        .code
-                        .expect("\x1b[31mXbox Expected code.\x1b[0m")
-                        .as_str(),
+                let server_token = ouath_token(
+                    client.clone(),
+                    None,
+                    Some(
+                        server
+                            .code
+                            .expect("\x1b[31mXbox Expected code.\x1b[0m")
+                            .as_str(),
+                    ),
                     &self.client_id,
+                    self.scope.as_deref().unwrap_or_default(),
                     self.port,
                     &self.client_secrect,
                 )
@@ -343,8 +386,39 @@ impl AuthenticationBuilder {
             AuthType::DeviceCode => {
                 print!("{} \n Status: WIP (Work In Progress)", EXPERIMENTAL_MESSAGE);
                 let code = device_authentication_code(client.clone(), &self.client_id).await?;
-                let code_token = authenticate_device(client.clone(),&code.device_code, &self.client_id).await?;
+                let code_token =
+                    authenticate_device(client.clone(), &code.device_code, &self.client_id).await?;
                 let xbl = xbl(client.clone(), &code_token.token).await?;
+                let xts = xsts(client.clone(), &xbl.token, self.bedrockrel).await?;
+
+                if self.bedrockrel {
+                    Ok(CustomAuthData {
+                        access_token: None,
+                        uuid: None,
+                        expires_in: 0,
+                        xts_token: Some(xts.token),
+                    })
+                } else {
+                    Ok(bearer_token(client, &xbl.display_claims.xui[0].uhs, &xts.token).await?)
+                }
+            }
+            AuthType::Refresh => {
+                if self.refresh_token == None {
+                    return Err(Box::new(errors::AuthErrors::AuthenticationFailure(
+                        "Missing Refresh Token".to_string(),
+                    )));
+                };
+                let server_token = ouath_token(
+                    client.clone(),
+                    self.refresh_token.clone(),
+                    None,
+                    &self.client_id,
+                    self.scope.as_deref().unwrap_or_default(),
+                    self.port,
+                    &self.client_secrect,
+                )
+                .await?;
+                let xbl = xbl(client.clone(), &server_token.access_token).await?;
                 let xts = xsts(client.clone(), &xbl.token, self.bedrockrel).await?;
 
                 if self.bedrockrel {
@@ -618,6 +692,8 @@ impl DeviceCode {
         since = "0.2.12"
     )]
     pub async fn refresh(&self) {
-        println!("This method is deprecated and will be removed in the next minor version. Please refer to the updated documentation on using the `AuthenticationBuilder`.");
+        println!(
+            "This method is deprecated and will be removed in the next minor version. Please refer to the updated documentation on using the `AuthenticationBuilder`."
+        );
     }
 }
