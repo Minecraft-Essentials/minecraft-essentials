@@ -58,6 +58,8 @@ pub(crate) const EXPERIMENTAL_MESSAGE: &str =
 #[cfg(feature = "launch")]
 pub(crate) const MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
+#[cfg(feature = "auth")]
+pub(crate) const LAUNCHER_CLIENT_ID: &str = "00000000402B5328";
 
 /// OAuth 2.0 Authentication
 ///
@@ -112,7 +114,7 @@ impl Oauth {
         let mut builder = AuthenticationBuilder::builder();
         builder
             .port(self.port)
-            .client_id(&self.client_id)
+            .client_id(Some(&self.client_id))
             .of_type(AuthType::Oauth);
         let auth_info = builder
             .get_info()
@@ -144,10 +146,10 @@ impl Oauth {
         AuthenticationBuilder::builder()
             .bedrockrel(Some(bedrock_relm))
             .of_type(AuthType::Oauth)
-            .client_secret(client_secret)
-            .client_id(&self.client_id)
+            .client_secret(Some(client_secret))
+            .client_id(Some(&self.client_id))
             .port(Some(self.port))
-            .launch()
+            .launch(None, None)
             .await
     }
 
@@ -216,6 +218,11 @@ pub enum AuthType {
     /// This is used for refreshing your token with Minecraft.
     #[cfg(feature = "auth")]
     Refresh,
+
+    /// Minecraft authentification method
+    ///
+    /// Uses Minecraft Auth menthod (habdy if you want the minecraft background)
+    Minecraft,
 }
 
 /// Represents a builder for authentication configurations.
@@ -226,10 +233,10 @@ pub enum AuthType {
 #[cfg(feature = "auth")]
 pub struct AuthenticationBuilder {
     auth_type: AuthType,
-    client_id: String,
+    client_id: Option<String>,
     scope: Option<String>,
-    port: u16,
-    client_secrect: String,
+    port: Option<u16>,
+    client_secret: Option<String>,
     bedrockrel: bool,
     refresh_token: Option<String>,
 }
@@ -244,6 +251,8 @@ pub struct AuthInfo {
     pub device_code: Option<CodeResponse>,
     /// OAuth URL that you will recive based on AuthType::OAuth.
     pub ouath_url: Option<String>,
+    /// Redirect URL: Only needed when using minecraft auth
+    pub redirect_url: Option<String>,
 }
 
 #[cfg(feature = "auth")]
@@ -252,10 +261,10 @@ impl AuthenticationBuilder {
     pub fn builder() -> Self {
         Self {
             auth_type: AuthType::Oauth,
-            client_id: "".to_string(),
+            client_id: None,
             scope: Some(SCOPE.to_string()),
-            port: 8000,
-            client_secrect: "".to_string(),
+            port: Some(8000),
+            client_secret: None,
             bedrockrel: false,
             refresh_token: None,
         }
@@ -270,24 +279,28 @@ impl AuthenticationBuilder {
     }
 
     /// Client ID from your application Required for `OAuth` & `DeviceCode`.
-    pub fn client_id(&mut self, client_id: &str) -> &mut Self {
-        self.client_id = client_id.to_string();
+    pub fn client_id(&mut self, client_id: Option<&str>) -> &mut Self {
+        if client_id.is_some() {
+            self.client_id = client_id.map(|id| id.to_string());
+        }
         self
     }
 
     /// Port for the Temporary https Required for `OAuth``.
     pub fn port<T: Optional<u16>>(&mut self, port: T) -> &mut Self {
         let port = match port.into() {
-            Some(port) => port,
-            None => 8000,
+            Some(port) => Some(port),
+            None => None,
         };
         self.port = port;
         self
     }
 
     /// Client Secret from your application Required for `OAuth` & `DeviceCode`.
-    pub fn client_secret(&mut self, client_secret: &str) -> &mut Self {
-        self.client_secrect = client_secret.to_string();
+    pub fn client_secret(&mut self, client_secret: Option<&str>) -> &mut Self {
+        if client_secret.is_some() {
+            self.client_secret = client_secret.map(|secret| secret.to_string());
+        }
         self
     }
 
@@ -324,36 +337,63 @@ impl AuthenticationBuilder {
     /// Gets the code for device code method
     pub async fn get_info(&mut self) -> AuthInfo {
         let client = Client::new();
-        if self.auth_type == AuthType::DeviceCode {
-            let code = device_authentication_code(client, &self.client_id)
-                .await
-                .unwrap();
-            AuthInfo {
-                device_code: Some(code),
-                ouath_url: None,
+
+        match self.auth_type {
+            AuthType::DeviceCode => {
+                let client_id = &self.client_id.clone().expect("EXPECTED CLIENT_ID");
+                let code = device_authentication_code(client, client_id).await.unwrap();
+                AuthInfo {
+                    device_code: Some(code),
+                    ouath_url: None,
+                    redirect_url: None,
+                }
             }
-        } else {
-            let url = format!(
-                "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize/?client_id={}&response_type=code&redirect_uri=http://localhost:{}&response_mode=query&scope={}&state=12345",
-                self.client_id, self.port, SCOPE
-            );
-            AuthInfo {
-                device_code: None,
-                ouath_url: Some(url),
+            AuthType::Oauth | AuthType::Refresh => {
+                let client_id = &self.client_id.clone().expect("EXPECTED CLIENT_ID");
+                let url = format!(
+                    "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize/?client_id={}&response_type=code&redirect_uri=http://localhost:{}&response_mode=query&scope={}&state=12345",
+                    client_id,
+                    self.port.expect("EXPECTED PORT"),
+                    self.scope.clone().expect("Expected Scope")
+                );
+                AuthInfo {
+                    device_code: None,
+                    ouath_url: Some(url),
+                    redirect_url: None,
+                }
+            }
+            AuthType::Minecraft => {
+                let redirect_url = "https://login.live.com/oauth20_desktop.srf";
+                let url = format!(
+                    "https://login.live.com/oauth20_authorize.srf?client_id={LAUNCHER_CLIENT_ID}&redirect_uri={}&response_type=code&scope=service::user.auth.xboxlive.com::MBI_SSL",
+                    redirect_url
+                );
+
+                AuthInfo {
+                    device_code: None,
+                    ouath_url: Some(url),
+                    redirect_url: Some(redirect_url.to_string()),
+                }
             }
         }
     }
 
     /// Launchs the authentication process.
-    pub async fn launch(&mut self) -> Result<CustomAuthData, Box<dyn std::error::Error>> {
+    pub async fn launch(
+        &mut self,
+        code: Option<&str>,
+        redirect_url: Option<String>,
+    ) -> Result<CustomAuthData, Box<dyn std::error::Error>> {
         dbg!(&self.auth_type, &self.client_id);
         let client = Client::new();
 
         match self.auth_type {
             AuthType::Oauth => {
-                dbg!(&self.client_secrect, self.port);
-                print!("{}", self.client_id);
-                let server = ouath(self.port)?.await?;
+                dbg!(&self.client_secret, self.port, &self.client_secret);
+                let client_id = &self.client_id.clone().expect("EXPECTED CLIENT_ID");
+                let client_secret = &self.client_secret.clone().expect("EXPECTED CLIENT_ID");
+
+                let server = ouath(self.port.expect("EXPECTED PORT"))?.await?;
                 let server_token = ouath_token(
                     client.clone(),
                     None,
@@ -363,13 +403,18 @@ impl AuthenticationBuilder {
                             .expect("\x1b[31mXbox Expected code.\x1b[0m")
                             .as_str(),
                     ),
-                    &self.client_id,
+                    client_id,
                     self.scope.as_deref().unwrap_or_default(),
-                    self.port,
-                    &self.client_secrect,
+                    format!("https://localhost:{}", self.port.expect("EXPECTED PORT")),
+                    Some(client_secret),
                 )
                 .await?;
-                let xbl = xbl(client.clone(), &server_token.access_token).await?;
+                let xbl = xbl(
+                    client.clone(),
+                    &server_token.access_token,
+                    format!("https://localhost:{}", self.port.expect("EXPECTED PORT")),
+                )
+                .await?;
                 let xts = xsts(client.clone(), &xbl.token, self.bedrockrel).await?;
 
                 if self.bedrockrel {
@@ -384,11 +429,13 @@ impl AuthenticationBuilder {
                 }
             }
             AuthType::DeviceCode => {
+                let client_id = &self.client_id.clone().expect("EXPECTED CLIENT_ID");
+
                 print!("{} \n Status: WIP (Work In Progress)", EXPERIMENTAL_MESSAGE);
-                let code = device_authentication_code(client.clone(), &self.client_id).await?;
+                let code = device_authentication_code(client.clone(), client_id).await?;
                 let code_token =
-                    authenticate_device(client.clone(), &code.device_code, &self.client_id).await?;
-                let xbl = xbl(client.clone(), &code_token.token).await?;
+                    authenticate_device(client.clone(), &code.device_code, client_id).await?;
+                let xbl = xbl(client.clone(), &code_token.token, "".to_string()).await?;
                 let xts = xsts(client.clone(), &xbl.token, self.bedrockrel).await?;
 
                 if self.bedrockrel {
@@ -403,6 +450,14 @@ impl AuthenticationBuilder {
                 }
             }
             AuthType::Refresh => {
+                let client_id = &self.client_id.clone().expect("EXPECTED CLIENT_ID");
+                let client_secret = &self.client_secret.clone().expect("EXPECTED CLIENT_ID");
+                let oauth_url = if self.port.is_some() {
+                    format!("https://localhost:{}", self.port.expect("EXPECTED PORT"))
+                } else {
+                    redirect_url.expect("EXPECTED REDIRECT URL")
+                };
+
                 if self.refresh_token == None {
                     return Err(Box::new(errors::AuthErrors::AuthenticationFailure(
                         "Missing Refresh Token".to_string(),
@@ -412,13 +467,46 @@ impl AuthenticationBuilder {
                     client.clone(),
                     self.refresh_token.clone(),
                     None,
-                    &self.client_id,
+                    client_id,
                     self.scope.as_deref().unwrap_or_default(),
-                    self.port,
-                    &self.client_secrect,
+                    oauth_url.clone(),
+                    Some(client_secret),
                 )
                 .await?;
-                let xbl = xbl(client.clone(), &server_token.access_token).await?;
+                let xbl = xbl(
+                    client.clone(),
+                    &server_token.access_token,
+                    oauth_url.clone(),
+                )
+                .await?;
+                let xts = xsts(client.clone(), &xbl.token, self.bedrockrel).await?;
+
+                if self.bedrockrel {
+                    Ok(CustomAuthData {
+                        access_token: None,
+                        uuid: None,
+                        expires_in: 0,
+                        xts_token: Some(xts.token),
+                    })
+                } else {
+                    Ok(bearer_token(client, &xbl.display_claims.xui[0].uhs, &xts.token).await?)
+                }
+            }
+            AuthType::Minecraft => {
+                dbg!(self.port);
+                let url = redirect_url.expect("EXPECTED REDIRECT URL");
+
+                let server_token = ouath_token(
+                    client.clone(),
+                    None,
+                    code,
+                    LAUNCHER_CLIENT_ID,
+                    "service::user.auth.xboxlive.com::MBI_SSL",
+                    url.clone(),
+                    None,
+                )
+                .await?;
+                let xbl = xbl(client.clone(), &server_token.access_token, url.clone()).await?;
                 let xts = xsts(client.clone(), &xbl.token, self.bedrockrel).await?;
 
                 if self.bedrockrel {
@@ -663,7 +751,7 @@ impl DeviceCode {
     ) -> Result<CustomAuthData, Box<dyn std::error::Error>> {
         let client = Client::new();
         let code = authenticate_device(client.clone(), &self.device_code, &self.client_id).await?;
-        let xbl = xbl(client.clone(), &code.token).await?;
+        let xbl = xbl(client.clone(), &code.token, "".to_string()).await?;
         let xts = xsts(client.clone(), &xbl.token, bedrock_relm).await?;
 
         if bedrock_relm {

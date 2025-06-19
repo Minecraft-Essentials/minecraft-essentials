@@ -1,7 +1,9 @@
 #![forbid(unsafe_code)]
 #![warn(clippy::pedantic)]
 
-use crate::{errors::AuthErrors, trait_alias::*};
+use std::collections::HashMap;
+
+use crate::{MOJANG_REDIR_URL, errors::AuthErrors, trait_alias::*};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::{io::AsyncReadExt, net::TcpListener, sync::mpsc};
@@ -154,10 +156,7 @@ fn parse_oauth(data: &[u8]) -> Result<OuathInfo, AuthErrors> {
 /// OAuth Auth Token Infomation.
 #[derive(Deserialize, Debug)]
 pub struct OuathToken {
-    pub token_type: String,
-    pub scope: String,
-    pub expires_in: u16,
-    pub ext_expires_in: u16,
+    pub expires_in: u64,
     pub access_token: String,
     pub refresh_token: String,
 }
@@ -168,34 +167,38 @@ pub fn ouath_token(
     code: Option<&str>,
     client_id: &str,
     scope: &str,
-    port: u16,
-    client_secret: &str,
+    redirect_uri: String,
+    client_secret: Option<&str>,
 ) -> impl AsyncSendSync<Result<OuathToken, AuthErrors>> {
-    let url = format!("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
-    let mut body = format!(
-        "client_id={}&scope={}&client_secret={}",
-        client_id, scope, client_secret
-    );
+    let url = if redirect_uri == MOJANG_REDIR_URL {
+        "https://login.live.com/oauth20_token.srf"
+    } else {
+        "https://login.microsoftonline.com/consumers/oauth2/v2.0/token"
+    };
+
+    // Use owned Strings for both keys and values
+    let mut form = HashMap::new();
+    form.insert("client_id".to_string(), client_id.to_string());
+    form.insert("scope".to_string(), scope.to_string());
+
+    if let Some(secret) = client_secret {
+        form.insert("client_secret".to_string(), secret.to_string());
+    }
 
     if let Some(token) = refresh_token {
-        body.push_str(&format!(
-            "&grant_type=refresh_token&refresh_token={}",
-            token
-        ));
+        form.insert("grant_type".to_string(), "refresh_token".to_string());
+        form.insert("refresh_token".to_string(), token); // token is already a String
     } else if let Some(auth_code) = code {
-        let redirect_uri = format!("http://localhost:{}", port);
-        body.push_str(&format!(
-            "&grant_type=authorization_code&code={}&redirect_uri={}",
-            auth_code, redirect_uri
-        ));
-    };
+        form.insert("grant_type".to_string(), "authorization_code".to_string());
+        form.insert("code".to_string(), auth_code.to_string());
+        form.insert("redirect_uri".to_string(), redirect_uri);
+    }
 
     async move {
         'out: {
-            let result = client.post(url).body(body).send().await;
+            let result = client.post(url).form(&form).send().await;
 
             let std::result::Result::Ok(response) = result else {
-                println!("Part 1");
                 break 'out Err(AuthErrors::ResponseError(
                     "Failed to send request".to_string(),
                 ));
@@ -205,7 +208,8 @@ pub fn ouath_token(
                 .text()
                 .await
                 .map_err(|_| AuthErrors::ResponseError("Failed to send request".to_string()))?;
-            let std::result::Result::Ok(token) = serde_json::from_str::<OuathToken>(&text) else {
+
+            let std::result::Result::Ok(token) = serde_json::from_str(&text) else {
                 break 'out Err(AuthErrors::ResponseError(
                     "Failed to send request, Check your Client Secret.".to_string(),
                 ));

@@ -1,12 +1,12 @@
 #![forbid(unsafe_code)]
 #![warn(clippy::pedantic)]
 
-use crate::trait_alias::*;
+use crate::{MOJANG_REDIR_URL, trait_alias::*};
 use reqwest::Client;
 
-use reqwest::header::{self, HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE};
+use reqwest::header::{self, ACCEPT, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::errors::AuthErrors;
 #[derive(Deserialize, Debug)]
@@ -29,18 +29,25 @@ pub struct XblOutput {
     pub display_claims: DisplayClaims,
 }
 
-pub fn xbl(client: Client, token: &str) -> impl AsyncSendSync<Result<XblOutput, AuthErrors>> {
+pub fn xbl(
+    client: Client,
+    token: &str,
+    redirect_url: String,
+) -> impl AsyncSendSync<Result<XblOutput, AuthErrors>> {
     let url = format!("https://user.auth.xboxlive.com/user/authenticate");
     let rps_ticket = format!("d={}", token);
     let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
 
     let body = json!({
        "Properties": {
            "AuthMethod": "RPS",
            "SiteName": "user.auth.xboxlive.com",
-           "RpsTicket": rps_ticket,
+           "RpsTicket": if redirect_url == MOJANG_REDIR_URL {
+               token
+           } else {
+               &rps_ticket
+           },
        },
        "RelyingParty": "http://auth.xboxlive.com",
        "TokenType": "JWT"
@@ -68,6 +75,7 @@ async fn xbl_internal(
             "Failed to send request to xbox".to_string(),
         ));
     };
+
     let text = response
         .text()
         .await

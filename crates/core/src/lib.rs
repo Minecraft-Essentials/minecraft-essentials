@@ -41,3 +41,6 @@ pub const EXPERIMENTAL_MESSAGE: &str =
 #[cfg(feature = "launch")]
 pub(crate) const MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
+
+#[cfg(feature = "auth")]
+pub(crate) const MOJANG_REDIR_URL: &str = "https://login.live.com/oauth20_desktop.srf";

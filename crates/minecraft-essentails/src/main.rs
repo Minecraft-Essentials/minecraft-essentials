@@ -1,6 +1,6 @@
 use clap::Parser;
+use cwd::{Cli, Commands, DeviceCodeArgs, OauthArgs};
 use minecraft_essentials::{AuthType, AuthenticationBuilder};
-use cwd::{Commands, Cli, DeviceCodeArgs, OauthArgs};
 
 mod cwd;
 
@@ -20,14 +20,14 @@ async fn handle_oauth(oauth_args: &OauthArgs) {
     let mut auth_builder = AuthenticationBuilder::builder();
     auth_builder
         .of_type(AuthType::Oauth)
-        .client_id(&oauth_args.client_id)
-        .client_secret(&oauth_args.client_secret)
+        .client_id(Some(&oauth_args.client_id))
+        .client_secret(Some(&oauth_args.client_secret))
         .bedrockrel(oauth_args.bedrockrelm)
         .port(oauth_args.port);
 
     println!("{:?}", auth_builder.get_info().await);
 
-    let auth_info = auth_builder.launch().await.unwrap();
+    let auth_info = auth_builder.launch(None, None).await.unwrap();
 
     println!("{:?}", auth_info)
 }
@@ -36,12 +36,12 @@ async fn handle_device_code(device_code_args: &DeviceCodeArgs) {
     let mut auth_builder = AuthenticationBuilder::builder();
     auth_builder
         .of_type(AuthType::DeviceCode)
-        .client_id(&device_code_args.client_id)
+        .client_id(Some(&device_code_args.client_id))
         .bedrockrel(Some(device_code_args.bedrockrelm));
 
     println!("{:?}", auth_builder.get_info().await);
 
-    println!("{:?}", auth_builder.launch().await);
+    println!("{:?}", auth_builder.launch(None, None).await);
 }
 
 // async fn handle_launch(arg: &LaucnhArgs) {
