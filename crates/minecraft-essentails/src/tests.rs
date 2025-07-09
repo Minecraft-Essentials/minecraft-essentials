@@ -1,7 +1,6 @@
 use super::*;
 use dotenv::dotenv;
 use std::env;
-use todio::pin;
 
 #[cfg(feature = "auth")]
 #[tokio::test]
@@ -15,8 +14,6 @@ async fn test_oauth_url() {
     );
     let oauth = Oauth::new(&client_id, Some(port));
     let url = oauth.url().await;
-
-    pin!(url);
 
     assert_eq!(url, expected_url);
 }
@@ -47,8 +44,8 @@ async fn test_authentication_info() {
     let mut builder = AuthenticationBuilder::builder();
     builder
         .of_type(AuthType::Oauth)
-        .client_id(&client_id)
-        .client_secret(&client_secret)
+        .client_id(Some(&client_id))
+        .client_secret(Some(&client_secret))
         .port(port);
 
     let assert_url = format!(
@@ -59,7 +56,9 @@ async fn test_authentication_info() {
 
     assert_eq!(assert_url, url);
 
-    builder.of_type(AuthType::DeviceCode).client_id(&client_id);
+    builder
+        .of_type(AuthType::DeviceCode)
+        .client_id(Some(&client_id));
 
     let device_code = builder.get_info().await.device_code.unwrap();
     let url = device_code.verification_uri.clone();

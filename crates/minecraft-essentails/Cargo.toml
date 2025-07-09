@@ -30,20 +30,21 @@ pkg-fmt = "zip"
 
 
 [dependencies]
-core = { path = "../core", default-features = false}
+corelib = { path = "../core", default-features = false}
 clap = { version = "4.5.27", features = ["derive"], optional = true }
 tokio = { version = "1.43.0", features = ["macros"] }
 serde = "1.0.217"
 
 [dev-dependencies]
 dotenv = "0.15.0"
+tokio = { version = "1.43.0", features = ["macros", "tokio-macros"] }
 
 [features]
 default = ["auth", "cli", "launch", "modrinth", "curseforge"]
-auth = ["core/auth"]
-launch = ["core/launch"]
-refresh = ["core/refresh"]
+auth = ["corelib/auth"]
+launch = ["corelib/launch"]
+refresh = ["corelib/refresh"]
 # Mod Platforms
-modrinth = ["core/modrinth"]
-curseforge = ["core/curseforge"]
+modrinth = ["corelib/modrinth"]
+curseforge = ["corelib/curseforge"]
 cli = ["dep:clap", "auth"]

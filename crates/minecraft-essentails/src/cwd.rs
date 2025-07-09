@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
-use minecraft_essentials::{AuthType, AuthenticationBuilder, LaunchBuilder};
 
 #[derive(Parser)]
 #[command(version, long_about = None)]

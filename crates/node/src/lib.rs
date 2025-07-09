@@ -3,12 +3,12 @@
 use napi::{Error, Result, bindgen_prelude::*};
 use napi_derive::napi;
 
-use core::EXPERIMENTAL_MESSAGE;
-use core::HTTP::Client;
-use core::auth::AuthInfo as CoreAuthInfo;
-use core::launch::JavaJRE;
+use corelib::EXPERIMENTAL_MESSAGE;
+use corelib::HTTP::Client;
+use corelib::auth::AuthInfo as CoreAuthInfo;
+use corelib::launch::JavaJRE;
 
-use core::auth::{
+use corelib::auth::{
     bearer_token,
     microsoft::{SCOPE, authenticate_device, device_authentication_code, ouath, ouath_token},
     xbox::{XblOutput, XtsOutput, xbl, xsts},

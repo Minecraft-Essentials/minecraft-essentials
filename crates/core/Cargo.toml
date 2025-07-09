@@ -1,5 +1,5 @@
 [package]
-name = "core"
+name = "corelib"
 version.workspace = true
 edition.workspace = true
 publish = false

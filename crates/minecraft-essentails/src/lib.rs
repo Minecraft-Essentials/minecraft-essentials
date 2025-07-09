@@ -7,36 +7,36 @@
 ///
 /// This module contains all the error types and related functionality
 /// for error handling within the library.
-pub use core::errors;
-pub(crate) use core::trait_alias;
+pub use corelib::errors;
+pub(crate) use corelib::trait_alias;
 
 /// Structs module for the Minecraft-Essentials library.
 ///
 /// This module contains all the structs and related functionality
 /// for structs within the library.
-pub use core::structs;
+pub use corelib::structs;
 #[cfg(test)]
 mod tests;
 
 #[cfg(feature = "launch")]
 /// Launch module for the Minecraft-Essentials library.
-use core::launch;
+use corelib::launch;
 
 #[cfg(feature = "auth")]
-use core::auth;
+use corelib::auth;
 
 #[cfg(feature = "modrinth")]
-use core::modrinth;
+use corelib::modrinth;
 
 use std::path::PathBuf;
 
-use core::{
+use corelib::{
     HTTP::{self, Client},
     auth::microsoft::CodeResponse,
 };
 
 #[cfg(feature = "auth")]
-pub use core::auth::AuthInfo as CustomAuthData;
+pub use corelib::auth::AuthInfo as CustomAuthData;
 
 #[cfg(feature = "auth")]
 use auth::{
