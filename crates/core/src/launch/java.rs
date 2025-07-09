@@ -1,7 +1,7 @@
 use std::{env, fs, path::PathBuf};
 
-use crate::{errors::LaunchErrors, trait_alias::AsyncSendSync, HTTP::Client};
 use super::download_files;
+use crate::{HTTP::Client, errors::LaunchErrors, trait_alias::AsyncSendSync};
 
 /// Java Runtime Environment (JRE) for Minecraft.
 #[derive(Debug, Clone)]
@@ -46,8 +46,6 @@ fn java_url(jre: JRE, version: &str) -> Option<String> {
             arch_url(urls)
         }
 
-        JRE::Zulu => todo!(),
-
         JRE::GraalVM => {
             arch_support(&["x86_64", "x86", "aarch64"]).ok()?;
 
@@ -71,6 +69,7 @@ fn java_url(jre: JRE, version: &str) -> Option<String> {
             ];
             arch_url(urls)
         }
+        JRE::Zulu => todo!(),
     }
 }
 
@@ -92,7 +91,7 @@ pub fn get_java(
     };
 
     let user_agent = user_agent.to_owned();
-    let version = version.to_owned(); 
+    let version = version.to_owned();
     let jre = jre.clone();
 
     async move {
@@ -104,21 +103,19 @@ pub fn get_java(
     }
 }
 
-
 async fn download_jre(
     client: Client,
     url: String,
     path: PathBuf,
     user_agent: &str,
 ) -> Result<(), LaunchErrors> {
-    download_files(client.clone(), user_agent, &path, url).await.map_err(|e| {
-        LaunchErrors::Requirements(format!("Failed to download JRE due to: {}", e))
-    })?;
+    download_files(client.clone(), user_agent, &path, url)
+        .await
+        .map_err(|e| LaunchErrors::Requirements(format!("Failed to download JRE due to: {}", e)))?;
 
     if path.exists() && path.is_file() {
-        fs::remove_file(&path).map_err(|e| {
-            LaunchErrors::Requirements(format!("Failed to clean up file: {}", e))
-        })?;
+        fs::remove_file(&path)
+            .map_err(|e| LaunchErrors::Requirements(format!("Failed to clean up file: {}", e)))?;
     }
 
     Ok(())
@@ -128,13 +125,15 @@ fn arch_url(candidates: Vec<ArchUrl>) -> Option<String> {
     let arch = env::consts::ARCH;
     let os = env::consts::OS;
 
-    candidates.into_iter().find_map(|entry| match (entry.arch, entry.os) {
-        (Some(a), Some(o)) if a == arch && o == os => Some(entry.url),
-        (Some(a), None) if a == arch => Some(entry.url),
-        (None, Some(o)) if o == os => Some(entry.url),
-        (None, None) => Some(entry.url),
-        _ => None,
-    })
+    candidates
+        .into_iter()
+        .find_map(|entry| match (entry.arch, entry.os) {
+            (Some(a), Some(o)) if a == arch && o == os => Some(entry.url),
+            (Some(a), None) if a == arch => Some(entry.url),
+            (None, Some(o)) if o == os => Some(entry.url),
+            (None, None) => Some(entry.url),
+            _ => None,
+        })
 }
 
 fn arch_support(supported: &[&str]) -> Result<(), LaunchErrors> {
