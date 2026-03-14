@@ -36,6 +36,13 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+
+    deploy-tauri-plugin: 
+      needs: test
+      runs-on: ubunutu-latest
+      steps: 
+        - uses: actions/checkout@v4
+
     deploy-cli:
         name: Deploy CLI to github release 
         needs: test

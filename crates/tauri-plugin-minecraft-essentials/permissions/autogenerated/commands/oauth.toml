@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-oauth"
+description = "Enables the oauth command without any pre-configured scope."
+commands.allow = ["oauth"]
+
+[[permission]]
+identifier = "deny-oauth"
+description = "Denies the oauth command without any pre-configured scope."
+commands.deny = ["oauth"]

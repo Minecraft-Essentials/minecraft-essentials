@@ -31,3 +31,9 @@ pub async fn get_manifest(client: Client, user_agent: &str) -> Result<ManifestVe
 
     Ok(manifest)
 }
+
+
+
+pub async setup_minecraft() {
+
+}

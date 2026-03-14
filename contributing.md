@@ -10,9 +10,10 @@
 
 
 ## Prerequisites: 
-- Rust,
+- Rust, Bun & Uv.
 - [Azure/EntraId App with Client Id And Secret](https://entra.microsoft.com/) &
 - [Access to the Bearer Token API.](https://help.minecraft.net/hc/en-us/articles/16254801392141p)
+
 
 
 

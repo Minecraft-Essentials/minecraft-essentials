@@ -2,7 +2,7 @@ mod java;
 mod minecraft;
 
 pub use java::JRE as JavaJRE;
-use reqwest::{header::USER_AGENT, Client};
+use reqwest::{Client, header::USER_AGENT};
 use std::{fs::File, io::Write, path::PathBuf};
 
 pub(crate) async fn download_files(
@@ -24,7 +24,7 @@ pub(crate) async fn download_files(
     return Ok(());
 }
 
-pub(crate) async fn launch_minecraft(
+pub(crate) async fn setuo_minecraft(
     args: Vec<String>,
     dir: &PathBuf,
     user_agent: &str,
@@ -32,9 +32,14 @@ pub(crate) async fn launch_minecraft(
     let client = Client::new();
     let manifest = minecraft::get_manifest(client.clone(), user_agent).await?;
     let version_url = manifest.versions.url.clone();
-    let version_manifest = minecraft::get_version_manifest(client, &version_url, user_agent).await?;
+    let version_manifest =
+        minecraft::get_version_manifest(client, &version_url, user_agent).await?;
 
     println!("Version Manifest: {:#?}", version_manifest);
 
     Ok(())
 }
+
+
+
+pub(crate) 
