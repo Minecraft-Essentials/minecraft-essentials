@@ -1,3 +1,7 @@
+> [!WARNING]
+> This libary is bought by TeaClient and is now deprecated. For more info, please see https://teaclient.com/news/updates/deprecation-of-minecraft-essentails for more infomation.
+
+
 # Minecraft-Essentials
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fminecraft-essentials%2Fminecraft-essentials.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fminecraft-essentials%2Fminecraft-essentials?ref=badge_shield)
 
